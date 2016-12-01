@@ -4,7 +4,7 @@ library(Boruta)
 df[is.na(df)] <- 0
 df[df == ""] <- 0
 X<-df[ , -which(names(df) %in% c("PREVSALEDATE","PREVSALEDATE2","ClassLabel", "PARID", "PROPERTYUNIT", "PriceDiff1", "PriceDiff2", "DateDiff1", "DateDiff2", "SALEDATE"))]
-Y<-df['ClassLabel']
+Y<-df[,'ClassLabel']
 
 
 
