@@ -1,38 +1,15 @@
 # Author: Nick Kharas
 # Description : Classification Models to understand investor behavior
 
-# read.csv("./filename.csv", colClasses = c("factor", "factor", "factor", "character"...... )
-
 import.csv <- function(filename){
   return(read.csv(filename,sep="," ,header=TRUE))
 }
 
-write.csv <- function(ob, filename) {
-  write.table(ob, filename, quote = FALSE, sep = ",", row.names = FALSE)
-}
-
-fillna <- function(x){
-  if(is.na(x)){
-    if(is.numeric(x)){
-      x <- 0
-    }
-    else{
-      x <- ''
-    }
-    
-  }
-  else {
-    x <- ''
-  }
-  return(x)
-}
 
 # total <- import.csv('BestFile.csv')
 data.set <- import.csv('property_assessments_clean.csv')
 
-
-# data.set <- data.frame(total$PROPERTYZIP_x, total$MUNICODE_x, total$SCHOOLCODE_x, total$NEIGHCODE, total$TAXCODE, total$OWNERCODE, total$CLASS, total$USECODE, total$LOTAREA, total$SALECODE_x, total$ClassLabel)
-
+# Convert numbers into factors where applicable
 data.set$PROPERTYZIP <- as.factor(data.set$PROPERTYZIP)
 data.set$isVacant <- as.factor(data.set$isVacant)
 data.set$ClassLabel <- as.factor(data.set$ClassLabel)
@@ -90,11 +67,67 @@ plot(ctr.fit)
 
 library(randomForest)
 rdf.fit <- randomForest(ClassLabel  ~ . - PROPERTYZIP - MUNIDESC - NEIGHDESC,
-                        data = train, na.action = na.omit,
-                        ntree = 225)
+                        data = train, na.action = na.omit) #, ntree = 100)
 rdf.pred <- predict(rdf.fit, 
                     test[, !(colnames(test) %in% c(test$PROPERTYZIP, test$MUNIDESC, test$NEIGHDESC))], 
                     type = "prob" )
+rdf.roc <- prediction(rdf.pred[,2] , test[,n.col])
+rdf.auc <- performance(rdf.roc, "auc")
+rdf.perf <- performance(rdf.roc, measure = "tpr", x.measure = "fpr")
+rdf.auc@y.name
+rdf.auc@y.values
+plot(rdf.perf) # AUC Curve
+plot(rdf.fit) # Shows the error with the number of trees
+imp <- data.frame(importance(rdf.fit) )
+varImpPlot(rdf.fit) # Features
+
+# The above plot shows a list of important features
+# We train the model again using those specific features
+train.new <- data.frame(train$SALEPRICE, train$SCHOOLDESC, 
+                        train$FINISHEDLIVINGAREA, train$LOTAREA, 
+                        train$YEARBLT, 
+                        train$COUNTYTOTAL, 
+                        train$COUNTYBUILDING, train$FAIRMARKETTOTAL, 
+                        train$LOCALTOTAL, train$COUNTYLAND, 
+                        train$STYLEDESC, train$TOTALROOMS, 
+                        train$GRADE, train$OWNERDESC,
+                        train$BEDROOMS, train$EXTFINISH_DESC, 
+                        train$CONDITIONDESC, train$CDU, train$HALFBATHS, 
+                        train$BSMTGARAGE, train$FIREPLACES, 
+                        train$STORIES, train$FULLBATHS,
+                        train$HOMESTEADFLAG, train$HEATINGCOOLINGDESC, 
+                        train$ROOFDESC, train$ClassLabel)
+
+test.new <- data.frame(test$SALEPRICE, test$SCHOOLDESC, 
+                       test$FINISHEDLIVINGAREA, test$LOTAREA, 
+                       test$YEARBLT, test$COUNTYTOTAL, 
+                       test$COUNTYBUILDING, test$FAIRMARKETTOTAL, 
+                       test$LOCALTOTAL, test$COUNTYLAND, 
+                       test$STYLEDESC, test$TOTALROOMS, 
+                       test$GRADE, test$OWNERDESC,
+                       test$BEDROOMS, test$EXTFINISH_DESC, 
+                       test$CONDITIONDESC, test$CDU, test$HALFBATHS, 
+                       test$BSMTGARAGE, test$FIREPLACES, 
+                       test$STORIES, test$FULLBATHS,
+                       test$HOMESTEADFLAG, test$HEATINGCOOLINGDESC, 
+                       test$ROOFDESC, test$ClassLabel)
+
+colnames(test.new) <- c('train.SALEPRICE', 'train.SCHOOLDESC', 
+'train.FINISHEDLIVINGAREA', 'train.LOTAREA', 
+'train.YEARBLT', 'train.COUNTYTOTAL', 
+'train.COUNTYBUILDING', 'train.FAIRMARKETTOTAL', 
+'train.LOCALTOTAL', 'train.COUNTYLAND', 
+'train.STYLEDESC', 'train.TOTALROOMS', 
+'train.GRADE', 'train.OWNERDESC',
+'train.BEDROOMS', 'train.EXTFINISH_DESC', 
+'train.CONDITIONDESC', 'train.CDU', 'train.HALFBATHS', 
+'train.BSMTGARAGE', 'train.FIREPLACES', 
+'train.STORIES', 'train.FULLBATHS',
+'train.HOMESTEADFLAG', 'train.HEATINGCOOLINGDESC', 
+'train.ROOFDESC', 'train.ClassLabel')
+
+rdf.fit <- randomForest(train.ClassLabel  ~ . , data = train.new, na.action = na.omit) # ,ntree = 500)
+rdf.pred <- predict(rdf.fit, test.new, type = "prob" )
 rdf.roc <- prediction(rdf.pred[,2] , test[,n.col])
 rdf.auc <- performance(rdf.roc, "auc")
 rdf.perf <- performance(rdf.roc, measure = "tpr", x.measure = "fpr")

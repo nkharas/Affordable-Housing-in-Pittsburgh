@@ -39,8 +39,9 @@ propAssessment.loc[(propAssessment.CLEANGREEN != 'Y') | (pd.isnull(propAssessmen
 
 
 propAssessment['PriceDiff1'] = propAssessment.SALEPRICE - propAssessment.PREVSALEPRICE
-
+propAssessment['PriceDiff1_per'] = (((propAssessment.SALEPRICE - propAssessment.PREVSALEPRICE) * 1.0) / (propAssessment.SALEPRICE * 1.0)) * 100.0
 propAssessment['PriceDiff2'] = propAssessment.PREVSALEPRICE - propAssessment.PREVSALEPRICE2
+propAssessment['PriceDiff2_per'] = (((propAssessment.PREVSALEPRICE - propAssessment.PREVSALEPRICE2) * 1.0) / (propAssessment.PREVSALEPRICE * 1.0)) * 100.0
 
 propAssessment['SALEDATE'] = pd.to_datetime(propAssessment['SALEDATE'], errors='coerce')
 propAssessment['PREVSALEDATE'] = pd.to_datetime(propAssessment['PREVSALEDATE'], errors='coerce')
@@ -69,10 +70,16 @@ propAssessment['ClassLabel'] = 0
 #df_join.loc[(df_join.DateDiff2 < pd.Timedelta('366 days')) & (df_join.DateDiff2 > pd.Timedelta('1 days')) & (df_join.PriceDiff2 < 100000) & (df_join.PriceDiff2 > 0), 'ClassLabel'] = 1
 #df_join.loc[(df_join.DateDiff1 < pd.Timedelta('366 days')) & (df_join.DateDiff1 > pd.Timedelta('1 days')) & (df_join.PriceDiff1 < 100000) & (df_join.PriceDiff1 > 0),'ClassLabel'] = 1
 #propAssessment.loc[(propAssessment.DateDiff1 < pd.Timedelta('366 days')) & (propAssessment.DateDiff1 >= pd.Timedelta('0 days')) & (propAssessment.PriceDiff1 < 100000),'ClassLabel'] = 1
-propAssessment.loc[(propAssessment.DateDiff1 < pd.Timedelta('366 days')) & (propAssessment.DateDiff1 >= pd.Timedelta('0 days')),'ClassLabel'] = 1
-propAssessment.loc[(propAssessment.DateDiff2 < pd.Timedelta('366 days')) & (propAssessment.DateDiff2 >= pd.Timedelta('0 days')),'ClassLabel'] = 1
+#propAssessment.loc[(propAssessment.DateDiff1 < pd.Timedelta('366 days')) & (propAssessment.DateDiff1 >= pd.Timedelta('0 days')),'ClassLabel'] = 1
+#propAssessment.loc[(propAssessment.DateDiff2 < pd.Timedelta('366 days')) & (propAssessment.DateDiff2 >= pd.Timedelta('0 days')),'ClassLabel'] = 1
+propAssessment.loc[(propAssessment.DateDiff1 < pd.Timedelta('1100 days')) & (propAssessment.DateDiff1 >= pd.Timedelta('0 days')) & ((propAssessment.PriceDiff1_per < 15) | (propAssessment.SALEPRICE < 90000)),'ClassLabel'] = 1
+#propAssessment.loc[(propAssessment.DateDiff2 < pd.Timedelta('1100 days')) & (propAssessment.DateDiff2 >= pd.Timedelta('0 days')) & ((propAssessment.PriceDiff2_per < 15)| (propAssessment.PREVSALEPRICE < 90000)),'ClassLabel'] = 1
 #df_join.to_csv('F:\\DataAnalyticsClub\\DACaseComp\\DatasetDist\\Datasets\\BestFile.csv')
 
 # Added by Nick
 # Note that adding the price difference leads to a lot of null values, only 40000 out of 180000 rows remain without nulls in any column
 propAssessment[['PROPERTYZIP','MUNIDESC','SCHOOLDESC','NEIGHDESC','TAXDESC','OWNERDESC','USEDESC','LOTAREA','HOMESTEADFLAG','FARMSTEADFLAG','CLEANGREEN','SALEPRICE','COUNTYBUILDING','COUNTYLAND','COUNTYTOTAL','COUNTYEXEMPTBLDG','LOCALBUILDING','LOCALLAND','LOCALTOTAL','FAIRMARKETBUILDING','FAIRMARKETLAND','FAIRMARKETTOTAL','STYLEDESC','STORIES','YEARBLT','EXTFINISH_DESC','ROOFDESC','BASEMENTDESC','GRADE','CONDITIONDESC','CDU','TOTALROOMS','BEDROOMS','FULLBATHS','HALFBATHS','HEATINGCOOLINGDESC','FIREPLACES','BSMTGARAGE','FINISHEDLIVINGAREA','isVacant','ClassLabel']].to_csv('property_assessments_clean.csv', index = False, index_label = False)
+
+# Output file for clustering
+price_date_diff = propAssessment[['PriceDiff1_per','DateDiff1','SALEPRICE']][propAssessment['PriceDiff1_per'].notnull()] # Get price and date differences where price is not null
+price_date_diff[price_date_diff['DateDiff1'].notnull()].to_csv('price_date_diff.csv', index = False, index_label = False)
