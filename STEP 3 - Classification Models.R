@@ -2,7 +2,19 @@
 # Description : Classification Models to understand investor behavior
 
 # Import the cleaned property assessments data
-data.set <- read.csv('property_assessments_clean.csv', sep="," ,header=TRUE)
+data.raw <- read.csv('property_assessments_clean.csv', sep="," ,header=TRUE)
+data.clusters <- read.csv('data_with_clusters.csv', sep="," ,header=TRUE)
+
+# Join the analysis data with the clustering output o fetch the dependent variable
+# While we ran clustering only on properties that were sold, we cannot exclude properties that were never sold 
+# Thus, the left join
+data.set <- merge(x = data.raw, y = data.clusters, by="PARID", all.x = TRUE)
+
+# Remove PARID as it is a primary key, and not an independent variable
+data.set <- data.set[, -1] 
+
+# These sale codes indicate foreclosures
+data.set$ClassLabel <- ifelse(data.set$SALECODE %in% c('33','34','99','BK'), 1, data.set$ClassLabel)
 
 # Convert numbers into factors where applicable
 data.set$PROPERTYZIP <- as.factor(data.set$PROPERTYZIP)
@@ -11,12 +23,13 @@ data.set$ClassLabel <- as.factor(data.set$ClassLabel)
 # data.set$YEARBLT <- as.Date(as.character(data.set$YEARBLT), "%Y")
 data.set$YEARBLT <- as.factor(data.set$YEARBLT)
 
+
 ####################### PREPARE DATA FOR MODELING #######################################
 
 # Below code guarantees that data from both classes are evenly split in train and test data
 # Data has some bias, as one class dominates the other; we cannot expect the market to be overrun by flippers
 # only about 10% parcels are classified as potentially bad investmemts
-# For both classes, 80% data is for training and the rest is for testing
+# For both classes, 80% data is for training the algorithm, and the rest is for testing
 
 train.test.split <- function(df){
   n.row <- nrow(df)        # Number of rows in the data set
@@ -118,8 +131,9 @@ test$YEARBLT <- as.Date(test$YEARBLT, "%Y")
 ##################### RANDOM FOREST ############################
 
 library(randomForest)
-rdf.fit <- randomForest(ClassLabel  ~ . - PROPERTYZIP - MUNIDESC - NEIGHDESC,
-                        data = train, na.action = na.omit) #, ntree = 100) # Fit the model
+rdf.fit <- randomForest(ClassLabel  ~ . - PROPERTYZIP - MUNIDESC - NEIGHDESC - SALECODE,
+                        data = train, na.action = na.omit
+                        , ntree = 60, replace = TRUE, mtry = ncol(train) /10) # Fit the model
 rdf.pred <- predict(rdf.fit, 
                     test[, !(colnames(test) %in% c(test$PROPERTYZIP, test$MUNIDESC, test$NEIGHDESC))], 
                     type = "prob", simply = FALSE )         # Fetch predicted values from the model
