@@ -1,3 +1,5 @@
+# Author - Max Haytovich
+
 df<-read.csv('F:/DataAnalyticsClub/DACaseComp/property_assessments_clean.csv',stringsAsFactors=FALSE )
 library(Boruta)
 df[is.na(df)] <- 0
